@@ -84,7 +84,16 @@ def process(det, input_image, prompt, a_prompt, n_prompt, num_samples, image_res
         x_samples = (einops.rearrange(x_samples, 'b c h w -> b h w c') * 127.5 + 127.5).cpu().numpy().clip(0, 255).astype(np.uint8)
 
         results = [x_samples[i] for i in range(num_samples)]
-    return [detected_map] + results
+        helper_out = []
+        for result in results:
+            result_depth_map = preprocessor(resize_image(result, detect_resolution))
+            result_depth_map = HWC3(result_depth_map)
+            result_depth_map = cv2.resize(result_depth_map, (W, H), interpolation=cv2.INTER_LINEAR).astype(np.uint8)
+            detected_map_error = np.abs(result_depth_map - detected_map).astype(np.uint8)
+            helper_out.append(result_depth_map)
+            helper_out.append(detected_map_error)
+
+    return [detected_map] + results + helper_out
 
 
 block = gr.Blocks().queue()
@@ -94,6 +103,7 @@ with block:
     with gr.Row():
         with gr.Column():
             input_image = gr.Image(source='upload', type="numpy")
+
             prompt = gr.Textbox(label="Prompt")
             run_button = gr.Button(label="Run")
             num_samples = gr.Slider(label="Images", minimum=1, maximum=12, value=1, step=1)

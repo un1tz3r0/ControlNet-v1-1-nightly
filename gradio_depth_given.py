@@ -9,7 +9,7 @@ import torch
 import random
 
 from pytorch_lightning import seed_everything
-from annotator.util import resize_image, HWC3
+from annotator.util import resize_image, HWC3, resize_depth
 from annotator.midas import MidasDetector
 from annotator.zoe import ZoeDetector
 from cldm.model import create_model, load_state_dict
@@ -26,7 +26,7 @@ model = model.cuda()
 ddim_sampler = DDIMSampler(model)
 
 
-def process(det, input_image, prompt, a_prompt, n_prompt, num_samples, image_resolution, detect_resolution, ddim_steps, guess_mode, strength, scale, seed, eta):
+def process(det, input_depth, prompt, a_prompt, n_prompt, num_samples, image_resolution, detect_resolution, ddim_steps, guess_mode, strength, scale, seed, eta):
     global preprocessor
 
     if det == 'Depth_Midas':
@@ -37,19 +37,15 @@ def process(det, input_image, prompt, a_prompt, n_prompt, num_samples, image_res
             preprocessor = ZoeDetector()
 
     with torch.no_grad():
-        input_image = HWC3(input_image)
 
-        if det == 'None':
-            detected_map = input_image.copy()
-        else:
-            detected_map = preprocessor(resize_image(input_image, detect_resolution))
-            detected_map = HWC3(detected_map)
+        depth_img = cv2.imread(input_depth, cv2.IMREAD_UNCHANGED)
+        print("depth_img", depth_img.shape, "min", depth_img.min(), "max", depth_img.max())
 
-        img = resize_image(input_image, image_resolution)
-        H, W, C = img.shape
-
-        detected_map = cv2.resize(detected_map, (W, H), interpolation=cv2.INTER_LINEAR)
-        print("detected_map", detected_map.shape, "min", detected_map.min(), "max", detected_map.max())
+        detected_map = depth_img / depth_img.max() * 255
+        detected_map = detected_map.astype(np.uint8)
+        detected_map = HWC3(detected_map)
+        detected_map = resize_depth(detected_map, image_resolution)
+        H, W, C = detected_map.shape
 
         control = torch.from_numpy(detected_map.copy()).float().cuda() / 255.0
         control = torch.stack([control for _ in range(num_samples)], dim=0)
@@ -84,7 +80,16 @@ def process(det, input_image, prompt, a_prompt, n_prompt, num_samples, image_res
         x_samples = (einops.rearrange(x_samples, 'b c h w -> b h w c') * 127.5 + 127.5).cpu().numpy().clip(0, 255).astype(np.uint8)
 
         results = [x_samples[i] for i in range(num_samples)]
-    return [detected_map] + results
+        helper_out = []
+        for result in results:
+            result_depth_map = preprocessor(resize_image(result, detect_resolution))
+            result_depth_map = HWC3(result_depth_map)
+            result_depth_map = cv2.resize(result_depth_map, (W, H), interpolation=cv2.INTER_LINEAR).astype(np.uint8)
+            detected_map_error = np.abs(result_depth_map - detected_map).astype(np.uint8)
+            helper_out.append(result_depth_map)
+            helper_out.append(detected_map_error)
+
+    return [detected_map] + results + helper_out
 
 
 block = gr.Blocks().queue()
@@ -93,7 +98,7 @@ with block:
         gr.Markdown("## Control Stable Diffusion with Depth Maps")
     with gr.Row():
         with gr.Column():
-            input_image = gr.Image(source='upload', type="numpy")
+            input_depth = gr.Textbox(label="Input Depth Map", default="upload an image", output_transform=lambda x: x[0])
             prompt = gr.Textbox(label="Prompt")
             run_button = gr.Button(label="Run")
             num_samples = gr.Slider(label="Images", minimum=1, maximum=12, value=1, step=1)
@@ -111,7 +116,7 @@ with block:
                 n_prompt = gr.Textbox(label="Negative Prompt", value='lowres, bad anatomy, bad hands, cropped, worst quality')
         with gr.Column():
             result_gallery = gr.Gallery(label='Output', show_label=False, elem_id="gallery").style(grid=2, height='auto')
-    ips = [det, input_image, prompt, a_prompt, n_prompt, num_samples, image_resolution, detect_resolution, ddim_steps, guess_mode, strength, scale, seed, eta]
+    ips = [det, input_depth, prompt, a_prompt, n_prompt, num_samples, image_resolution, detect_resolution, ddim_steps, guess_mode, strength, scale, seed, eta]
     run_button.click(fn=process, inputs=ips, outputs=[result_gallery])
 
 
