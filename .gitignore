@@ -138,3 +138,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# custom
+water_bottle_output

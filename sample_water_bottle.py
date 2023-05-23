@@ -15,6 +15,7 @@ from tqdm import tqdm
 import config
 
 from annotator.canny import CannyDetector
+from annotator.lineart import LineartDetector
 from annotator.midas import MidasDetector
 from annotator.normalbae import NormalBaeDetector
 from annotator.oneformer import OneformerADE20kDetector, OneformerCOCODetector
@@ -23,16 +24,20 @@ from annotator.util import HWC3, resize_image
 from annotator.zoe import ZoeDetector
 from cldm.ddim_hacked import DDIMSampler
 from cldm.model import create_model, load_state_dict
+from share import *
 
 
 @torch.no_grad()
 def one_image_batch(
+    ann,
     model,
     ddim_sampler,
     input_image,
     preprocessor,
     detect_resolution,
     image_resolution,
+    low_threshold,
+    high_threshold,
     num_samples,
     ddim_steps,
     guess_mode,
@@ -47,7 +52,12 @@ def one_image_batch(
 ):
     input_image = HWC3(input_image)
 
-    detected_map = preprocessor(resize_image(input_image, detect_resolution))
+    if ann == "canny":
+        detected_map = preprocessor(resize_image(input_image, detect_resolution), low_threshold, high_threshold)
+    elif ann == "lineart":
+        detected_map = preprocessor(resize_image(input_image, detect_resolution), coarse=False)
+    else:
+        detected_map = preprocessor(resize_image(input_image, detect_resolution))
     detected_map = HWC3(detected_map)
 
     img = resize_image(input_image, image_resolution)
@@ -108,7 +118,12 @@ def one_image_batch(
     re_detections = []
     re_detections_error = []
     for result in results:
-        re_detection_map = preprocessor(resize_image(result, detect_resolution))
+        if ann == "canny":
+            re_detection_map = preprocessor(resize_image(result, detect_resolution), low_threshold, high_threshold)
+        elif ann == "lineart":
+            re_detection_map = preprocessor(resize_image(result, detect_resolution), coarse=False)
+        else:
+            re_detection_map = preprocessor(resize_image(result, detect_resolution))
         re_detection_map = HWC3(re_detection_map)
         re_detection_map = cv2.resize(re_detection_map, (W, H), interpolation=cv2.INTER_LINEAR).astype(np.uint8)
         detected_map_error = np.abs(re_detection_map - detected_map).astype(np.uint8)
@@ -118,9 +133,11 @@ def one_image_batch(
     return detected_map, results, re_detections, re_detections_error
 
 
-def save_samples(output, output_dir, img_file):
+def save_samples(input_img, output, output_dir, img_file):
     detected_map, results, re_detections, re_detections_error = output
     img_basename = os.path.splitext(img_file)[0]
+    input_img = cv2.cvtColor(input_img, cv2.COLOR_RGB2BGR)
+    cv2.imwrite(os.path.join(output_dir, f"{img_basename}.png"), input_img)
     cv2.imwrite(os.path.join(output_dir, f"{img_basename}_detected.png"), detected_map)
     for i, result in enumerate(results):
         img = cv2.cvtColor(result, cv2.COLOR_RGB2BGR)
@@ -142,25 +159,37 @@ def main(args):
     elif args.ann == "seg":
         model_name = "control_v11p_sd15_seg"
         preprocessor = OneformerADE20kDetector()
+    elif args.ann == "lineart":
+        model_name = "control_v11p_sd15_lineart"
+        preprocessor = LineartDetector()
+    else:
+        raise NotImplementedError
     model = create_model(f"./models/{model_name}.yaml").cpu()
     model.load_state_dict(load_state_dict("./models/v1-5-pruned.ckpt", location="cuda"), strict=False)
     model.load_state_dict(load_state_dict(f"./models/{model_name}.pth", location="cuda"), strict=False)
     model = model.cuda()
     ddim_sampler = DDIMSampler(model)
 
+    cur_ann_output_dir = os.path.join(args.output_dir, args.ann)
+    os.makedirs(cur_ann_output_dir, exist_ok=True)
+
     image_files = os.listdir(args.data_dir)
-    # image_files = image_files[:1]
+    if args.debug:
+        image_files = image_files[:1]
     for img_file in tqdm(image_files, desc="Processing images"):
         img_path = os.path.join(args.data_dir, img_file)
         img = cv2.imread(img_path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         output = one_image_batch(
-            model,
-            ddim_sampler,
-            img,
-            preprocessor,
+            ann=args.ann,
+            model=model,
+            ddim_sampler=ddim_sampler,
+            input_image=img,
+            preprocessor=preprocessor,
             detect_resolution=512,
             image_resolution=512,
+            low_threshold=100,
+            high_threshold=200,
             num_samples=args.num_samples,
             ddim_steps=20,
             guess_mode=False,
@@ -168,12 +197,12 @@ def main(args):
             scale=9.0,
             seed=12345,
             eta=1.0,
-            prompt="a bottle",
+            prompt="a water bottle",
             a_prompt="best quality",
             n_prompt="lowres, bad anatomy, bad hands, cropped, worst quality",
             config=config,
         )
-        save_samples(output, args.output_dir, img_file)
+        save_samples(img, output, cur_ann_output_dir, img_file)
 
 
 if __name__ == "__main__":
@@ -183,7 +212,12 @@ if __name__ == "__main__":
     parser.add_argument("--data_dir", type=str, default="../data/water_bottle_all_renamed/single", required=True)
     parser.add_argument("--output_dir", type=str, default="./water_bottle_output/", required=True)
     parser.add_argument("--num_samples", type=int, default=1)
+    parser.add_argument("--debug", action="store_true", default=False)
     args = parser.parse_args()
 
-    os.makedirs(args.output_dir, exist_ok=True)
-    main(args)
+    if args.ann == "all":
+        for ann in ["depth", "normal", "canny", "seg", "lineart"]:
+            args.ann = ann
+            main(args)
+    else:
+        main(args)
