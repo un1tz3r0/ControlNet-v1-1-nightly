@@ -197,7 +197,7 @@ def main(args):
             scale=9.0,
             seed=12345,
             eta=1.0,
-            prompt="a water bottle",
+            prompt="a bottle with water in it and label on it",
             a_prompt="best quality",
             n_prompt="lowres, bad anatomy, bad hands, cropped, worst quality",
             config=config,
