@@ -176,7 +176,7 @@ def main(args):
     image_files = os.listdir(args.data_dir)
     if args.debug:
         image_files = image_files[:1]
-    for img_file in tqdm(image_files, desc="Processing images"):
+    for img_file in tqdm(image_files, desc=f"Processing images ann {args.ann}"):
         img_path = os.path.join(args.data_dir, img_file)
         img = cv2.imread(img_path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -216,7 +216,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.ann == "all":
-        for ann in ["depth", "normal", "canny", "seg", "lineart"]:
+        for ann in tqdm(["depth", "normal", "canny", "seg", "lineart"]):
             args.ann = ann
             main(args)
     else:
