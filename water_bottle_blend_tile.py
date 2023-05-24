@@ -108,12 +108,12 @@ def one_image(
     return results
 
 
-def save_samples(input_img, output, output_dir, img_file):
-    result = output[0]
+def save_samples(input_img, results, output_dir, img_file):
     img_basename = os.path.basename(img_file).split(".")[0]
-    result = cv2.cvtColor(result, cv2.COLOR_RGB2BGR)
-    out_path = os.path.join(output_dir, f"{img_basename}_tiled.png")
-    cv2.imwrite(out_path, result)
+    for i, result in enumerate(results):
+        result = cv2.cvtColor(result, cv2.COLOR_RGB2BGR)
+        out_path = os.path.join(output_dir, f"{img_basename}_{i}_tiled.png")
+        cv2.imwrite(out_path, result)
 
 
 def main(args):
@@ -138,7 +138,7 @@ def main(args):
             blend_img = cv2.imread(blend_img_file)
             blend_img = cv2.cvtColor(blend_img, cv2.COLOR_BGR2RGB)
 
-            output = one_image(
+            results = one_image(
                 ann=args.ann,
                 model=model,
                 ddim_sampler=ddim_sampler,
@@ -160,7 +160,7 @@ def main(args):
                 n_prompt="lowres, bad anatomy, bad hands, cropped, worst quality",
                 config=config,
             )
-            save_samples(blend_img, output, cur_ann_output_dir, blend_img_file)
+            save_samples(blend_img, results, cur_ann_output_dir, blend_img_file)
 
 
 if __name__ == "__main__":
