@@ -41,6 +41,7 @@ def main(args):
             detected_mask = cv2.resize(
                 detected_mask, (diffusion_img.shape[1], diffusion_img.shape[0]), interpolation=cv2.INTER_NEAREST
             )
+            detected_mask = detected_mask[:, :, None]
             detected_mask = np.concatenate([detected_mask, detected_mask, detected_mask], axis=2)
 
             # Blend
