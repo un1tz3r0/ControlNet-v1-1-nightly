@@ -29,9 +29,9 @@ def main(args):
         img_path = os.path.join(args.data_dir, img_file)
         input_img = cv2.imread(img_path)
 
-        detected_map = cv2.imread(
-            os.path.join(seg_ann_output_dir, f"{img_basename}_detected.png"), cv2.IMREAD_GRAYSCALE
-        )
+        det_path = os.path.join(seg_ann_output_dir, f"{img_basename}_detected.png")
+        print("det_path", det_path)
+        detected_map = cv2.imread(det_path, cv2.IMREAD_GRAYSCALE)
         depth_threshold = 150
         detected_mask = ((detected_map > depth_threshold) * 255).astype(np.uint8)
 
