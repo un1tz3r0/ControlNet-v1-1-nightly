@@ -34,6 +34,7 @@ def main(args):
         detected_map = cv2.imread(det_path, cv2.IMREAD_GRAYSCALE)
         depth_threshold = 150
         detected_mask = ((detected_map > depth_threshold) * 255).astype(np.uint8)
+        print("detected_mask", detected_mask.shape, detected_mask.dtype)
 
         for i in range(args.num_samples):
             diffusion_img = cv2.imread(os.path.join(cur_ann_output_dir, f"{img_basename}_{i}.png"))
@@ -41,8 +42,6 @@ def main(args):
             detected_mask = cv2.resize(
                 detected_mask, (diffusion_img.shape[1], diffusion_img.shape[0]), interpolation=cv2.INTER_NEAREST
             )
-            detected_mask = detected_mask[:, :, None]
-            detected_mask = np.concatenate([detected_mask, detected_mask, detected_mask], axis=2)
 
             # Blend
             blended_img = (input_img * (1 - detected_mask / 255) + diffusion_img * (detected_mask / 255)).astype(
