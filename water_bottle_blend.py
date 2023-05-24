@@ -22,6 +22,7 @@ def main(args):
         image_files = image_files[:1]
 
     cur_ann_output_dir = os.path.join(args.output_dir, args.ann)
+    seg_ann_output_dir = os.path.join(args.output_dir, "seg")
 
     for img_file in tqdm(image_files, desc=f"Processing images ann {args.ann}"):
         img_basename = os.path.splitext(img_file)[0]
@@ -29,7 +30,7 @@ def main(args):
         input_img = cv2.imread(img_path)
 
         detected_map = cv2.imread(
-            os.path.join(cur_ann_output_dir, f"{img_basename}_detected.png"), cv2.IMREAD_GRAYSCALE
+            os.path.join(seg_ann_output_dir, f"{img_basename}_detected.png"), cv2.IMREAD_GRAYSCALE
         )
         depth_threshold = 150
         detected_mask = ((detected_map > depth_threshold) * 255).astype(np.uint8)
@@ -37,7 +38,9 @@ def main(args):
         for i in range(args.num_samples):
             diffusion_img = cv2.imread(os.path.join(cur_ann_output_dir, f"{img_basename}_{i}.png"))
             input_img = cv2.resize(input_img, (diffusion_img.shape[1], diffusion_img.shape[0]))
-            detected_mask = cv2.resize(detected_mask, (diffusion_img.shape[1], diffusion_img.shape[0]), interpolation=cv2.INTER_NEAREST)
+            detected_mask = cv2.resize(
+                detected_mask, (diffusion_img.shape[1], diffusion_img.shape[0]), interpolation=cv2.INTER_NEAREST
+            )
             detected_mask = cv2.cvtColor(detected_mask, cv2.COLOR_GRAY2BGR)
 
             # Blend
