@@ -33,23 +33,20 @@ def main(args):
         print("det_path", det_path)
         detected_map = cv2.imread(det_path, cv2.IMREAD_GRAYSCALE)
         depth_threshold = 150
-        detected_mask = ((detected_map > depth_threshold) * 255).astype(np.uint8)
-        print("detected_mask", detected_mask.shape, detected_mask.dtype)
-        if len(detected_mask.shape) == 2:
-            detected_mask = np.expand_dims(detected_mask, axis=-1)
-            print("detected_mask", detected_mask.shape, detected_mask.dtype)
+        mask = ((detected_map > depth_threshold) * 255).astype(np.uint8)
+        print("mask", mask.shape, mask.dtype)
+        if len(mask.shape) == 2:
+            mask = np.tile(mask[:, :, None], [1, 1, 3])
+            print("mask", mask.shape, mask.dtype)
 
         for i in range(args.num_samples):
-            diffusion_img = cv2.imread(os.path.join(cur_ann_output_dir, f"{img_basename}_{i}.png"))
-            input_img = cv2.resize(input_img, (diffusion_img.shape[1], diffusion_img.shape[0]))
-            detected_mask = cv2.resize(
-                detected_mask, (diffusion_img.shape[1], diffusion_img.shape[0]), interpolation=cv2.INTER_NEAREST
-            )
+            diff_img = cv2.imread(os.path.join(cur_ann_output_dir, f"{img_basename}_{i}.png"))
+            h, w = diff_img.shape[:2]
+            cur_input_img = cv2.resize(input_img, (w, h))
+            cur_mask = cv2.resize(mask, (w, h), interpolation=cv2.INTER_NEAREST)
 
             # Blend
-            blended_img = (input_img * (1 - detected_mask / 255) + diffusion_img * (detected_mask / 255)).astype(
-                np.uint8
-            )
+            blended_img = (cur_input_img * (1 - cur_mask / 255) + diff_img * (cur_mask / 255)).astype(np.uint8)
             cv2.imwrite(os.path.join(cur_ann_output_dir, f"{img_basename}_{i}_blended.png"), blended_img)
 
 
