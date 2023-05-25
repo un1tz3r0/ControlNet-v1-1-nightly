@@ -11,7 +11,7 @@ import numpy as np
 import torch
 
 from pytorch_lightning import seed_everything
-from tqdm import tqdm
+from tqdm import tqdm, trange
 
 import config
 
@@ -130,9 +130,9 @@ def main(args):
 
     cur_ann_output_dir = os.path.join(args.output_dir, args.ann)
 
-    for img_file in tqdm(image_files, desc=f"Processing images ann {args.ann}"):
+    for img_file in tqdm(image_files, desc=f"Processing images ann {args.ann}", leave=False):
         img_basename = os.path.splitext(img_file)[0]
-        for i in range(args.num_samples):
+        for i in trange(args.num_samples, desc=f"Processing image {img_basename}"):
             blend_img_file = os.path.join(cur_ann_output_dir, f"{img_basename}_{i}_blended.png")
 
             blend_img = cv2.imread(blend_img_file)
@@ -147,7 +147,7 @@ def main(args):
                 image_resolution=512,
                 low_threshold=100,
                 high_threshold=200,
-                num_samples=args.num_samples,
+                num_samples=1,  # we already have num_samples images
                 denoise_strength=1.0,
                 ddim_steps=32,
                 guess_mode=False,
@@ -174,7 +174,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.ann == "all":
-        for ann in tqdm(["depth", "normal", "canny", "seg", "lineart"]):
+        for ann in tqdm(["depth", "normal", "canny", "seg", "lineart"], desc="Processing all anns", leave=False):
             args.ann = ann
             main(args)
     else:
