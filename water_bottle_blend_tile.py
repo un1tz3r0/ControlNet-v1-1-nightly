@@ -11,7 +11,6 @@ import numpy as np
 import torch
 
 from pytorch_lightning import seed_everything
-from tqdm import tqdm, trange
 
 import config
 
@@ -19,6 +18,9 @@ from annotator.util import HWC3, resize_image
 from cldm.ddim_hacked import DDIMSampler
 from cldm.model import create_model, load_state_dict
 from share import *
+
+
+# from tqdm import tqdm, trange
 
 
 @torch.no_grad()
@@ -130,9 +132,10 @@ def main(args):
 
     cur_ann_output_dir = os.path.join(args.output_dir, args.ann)
 
-    for img_file in tqdm(image_files, desc=f"Processing images ann {args.ann}", leave=False):
+    for img_i, img_file in enumerate(image_files):
         img_basename = os.path.splitext(img_file)[0]
-        for i in trange(args.num_samples, desc=f"Processing image {img_basename}"):
+        print("-" * 20, "Processing", img_basename, img_i, "/", len(image_files), "-" * 20)
+        for i in range(args.num_samples):
             blend_img_file = os.path.join(cur_ann_output_dir, f"{img_basename}_{i}_blended.png")
 
             blend_img = cv2.imread(blend_img_file)
@@ -174,8 +177,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.ann == "all":
-        for ann in tqdm(["depth", "normal", "canny", "seg", "lineart"], desc="Processing all anns", leave=False):
+        for ann in ["depth", "normal", "canny", "seg", "lineart"]:
             args.ann = ann
+            print("*" * 20, "Running for", ann, "*" * 20)
             main(args)
     else:
         main(args)
