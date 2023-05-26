@@ -126,7 +126,7 @@ def main(args):
     model = model.cuda()
     ddim_sampler = DDIMSampler(model)
 
-    print("*" * 20, "Running for", ann, "*" * 20)
+    print("*" * 20, "Running for", args.ann, "*" * 20)
     image_files = sorted(os.listdir(args.data_dir))
     if args.debug:
         image_files = image_files[:1]
