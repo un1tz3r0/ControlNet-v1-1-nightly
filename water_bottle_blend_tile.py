@@ -126,6 +126,7 @@ def main(args):
     model = model.cuda()
     ddim_sampler = DDIMSampler(model)
 
+    print("*" * 20, "Running for", ann, "*" * 20)
     image_files = sorted(os.listdir(args.data_dir))
     if args.debug:
         image_files = image_files[:1]
@@ -179,7 +180,6 @@ if __name__ == "__main__":
     if args.ann == "all":
         for ann in ["depth", "normal", "canny", "seg", "lineart"]:
             args.ann = ann
-            print("*" * 20, "Running for", ann, "*" * 20)
             main(args)
     else:
         main(args)
