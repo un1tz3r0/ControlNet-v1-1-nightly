@@ -64,6 +64,7 @@ def one_image_batch(
     H, W, C = img.shape
 
     detected_map = cv2.resize(detected_map, (W, H), interpolation=cv2.INTER_LINEAR)
+    print(f"detection {detected_map.shape} {detected_map.dtype} {detected_map.min()} {detected_map.max()}")
 
     control = torch.from_numpy(detected_map.copy()).float().cuda() / 255.0
     control = torch.stack([control for _ in range(num_samples)], dim=0)
@@ -133,9 +134,9 @@ def one_image_batch(
     return detected_map, results, re_detections, re_detections_error
 
 
-def save_samples(input_img, output, output_dir, img_file):
+def save_samples(input_img, output, output_dir, img_basename):
     detected_map, results, re_detections, re_detections_error = output
-    img_basename = os.path.splitext(img_file)[0]
+
     input_img = cv2.cvtColor(input_img, cv2.COLOR_RGB2BGR)
     cv2.imwrite(os.path.join(output_dir, f"{img_basename}.png"), input_img)
     cv2.imwrite(os.path.join(output_dir, f"{img_basename}_detected.png"), detected_map)
@@ -174,45 +175,42 @@ def main(args):
     cur_ann_output_dir = os.path.join(args.output_dir, args.ann)
     os.makedirs(cur_ann_output_dir, exist_ok=True)
 
-    image_files = os.listdir(args.data_dir)
-    if args.debug:
-        image_files = image_files[:1]
-    for img_file in tqdm(image_files, desc=f"Processing images ann {args.ann}"):
-        img_path = os.path.join(args.data_dir, img_file)
-        img = cv2.imread(img_path)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        output = one_image_batch(
-            ann=args.ann,
-            model=model,
-            ddim_sampler=ddim_sampler,
-            input_image=img,
-            preprocessor=preprocessor,
-            detect_resolution=512,
-            image_resolution=512,
-            low_threshold=100,
-            high_threshold=200,
-            num_samples=args.num_samples,
-            ddim_steps=20,
-            guess_mode=False,
-            strength=1.0,
-            scale=9.0,
-            seed=12345,
-            eta=1.0,
-            prompt="a bottle with water in it and label on it",
-            a_prompt="best quality",
-            n_prompt="lowres, bad anatomy, bad hands, cropped, worst quality",
-            config=config,
-        )
-        save_samples(img, output, cur_ann_output_dir, img_file)
+    img_path = os.path.join(args.img_path)
+    img_basename = os.path.basename(img_path).split(".")[0]
+    img = cv2.imread(img_path)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    output = one_image_batch(
+        ann=args.ann,
+        model=model,
+        ddim_sampler=ddim_sampler,
+        input_image=img,
+        preprocessor=preprocessor,
+        detect_resolution=512,
+        image_resolution=512,
+        low_threshold=100,
+        high_threshold=200,
+        num_samples=args.num_samples,
+        ddim_steps=20,
+        guess_mode=False,
+        strength=1.0,
+        scale=9.0,
+        seed=12345,
+        eta=1.0,
+        prompt="a bottle on table with water in it and label on it",
+        a_prompt="best quality",
+        n_prompt="lowres, bad anatomy, bad hands, cropped, worst quality",
+        config=config,
+    )
+    save_samples(img, output, cur_ann_output_dir, img_basename)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="A collection of util tools for AzureML")
+    parser = argparse.ArgumentParser(description="A parser for NOCS")
 
     parser.add_argument("--ann", type=str, default="depth")
-    parser.add_argument("--data_dir", type=str, default="../data/water_bottle_all_renamed/single", required=True)
-    parser.add_argument("--output_dir", type=str, default="./water_bottle_output/", required=True)
-    parser.add_argument("--num_samples", type=int, default=1)
+    parser.add_argument("--img_path", type=str, default="", required=True)
+    parser.add_argument("--output_dir", type=str, default="./nocs_output/", required=True)
+    parser.add_argument("--num_samples", type=int, default=4)
     parser.add_argument("--debug", action="store_true", default=False)
     args = parser.parse_args()
 

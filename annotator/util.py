@@ -27,6 +27,15 @@ def HWC3(x):
         return y
 
 
+def HWC1(x):
+    if x.ndim == 2:
+        x = x[:, :, None]
+    assert x.ndim == 3
+    H, W, C = x.shape
+    assert C == 1
+    return x
+
+
 def resize_image(input_image, resolution):
     H, W, C = input_image.shape
     H = float(H)

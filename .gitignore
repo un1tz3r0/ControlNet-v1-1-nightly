@@ -140,4 +140,5 @@ dmypy.json
 .pyre/
 
 # custom
-water_bottle_output
+controlnet_output*
+models
