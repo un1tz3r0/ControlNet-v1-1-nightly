@@ -20,7 +20,7 @@ preprocessor = None
 
 model_name = 'control_v11p_sd21_zoedepth'
 model = create_model(f'./models/{model_name}.yaml').cpu()
-model.load_state_dict(load_state_dict('./models/v2-1_512-ema-pruned', location='cuda'), strict=False)
+model.load_state_dict(load_state_dict('./models/v2-1_512-ema-pruned.safetensors', location='cuda'), strict=False)
 model.load_state_dict(load_state_dict(f'./models/{model_name}.safetensors', location='cuda'), strict=False)
 model = model.cuda()
 ddim_sampler = DDIMSampler(model)

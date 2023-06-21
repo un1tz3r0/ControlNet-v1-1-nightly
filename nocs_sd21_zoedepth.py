@@ -1,9 +1,11 @@
 import argparse
+import datetime
 import os
 import random
 
 import cv2
 import einops
+import gradio as gr
 import numpy as np
 import torch
 
@@ -12,32 +14,26 @@ from tqdm import tqdm
 
 import config
 
+from annotator.canny import CannyDetector
+from annotator.lineart import LineartDetector
+from annotator.midas import MidasDetector
+from annotator.normalbae import NormalBaeDetector
+from annotator.oneformer import OneformerADE20kDetector, OneformerCOCODetector
+from annotator.uniformer import UniformerDetector
 from annotator.util import HWC3, resize_image
+from annotator.zoe import ZoeDetector
 from cldm.ddim_hacked import DDIMSampler
 from cldm.model import create_model, load_state_dict
 from share import *
 
 
-def normalize_depth(depth):
-    depth_norm = np.copy(depth)
-    depth_norm = depth_norm / 1000.0
-    vmin = np.percentile(depth_norm, 2)
-    vmax = np.percentile(depth_norm, 85)
-
-    depth_norm -= vmin
-    depth_norm /= vmax - vmin
-    depth_norm = 1.0 - depth_norm
-    depth_image = (depth_norm * 255.0).clip(0, 255).astype(np.uint8)
-
-    return depth_image
-
-
 @torch.no_grad()
 def one_image_batch(
+    ann,
     model,
     ddim_sampler,
     input_image,
-    depth_image,
+    preprocessor,
     detect_resolution,
     image_resolution,
     low_threshold,
@@ -55,12 +51,20 @@ def one_image_batch(
     config,
 ):
     input_image = HWC3(input_image)
-    detected_map = HWC3(depth_image)
+
+    if ann == "canny":
+        detected_map = preprocessor(resize_image(input_image, detect_resolution), low_threshold, high_threshold)
+    elif ann == "lineart":
+        detected_map = preprocessor(resize_image(input_image, detect_resolution), coarse=False)
+    else:
+        detected_map = preprocessor(resize_image(input_image, detect_resolution))
+    detected_map = HWC3(detected_map)
 
     img = resize_image(input_image, image_resolution)
     H, W, C = img.shape
 
     detected_map = cv2.resize(detected_map, (W, H), interpolation=cv2.INTER_LINEAR)
+    print(f"detection {detected_map.shape} {detected_map.dtype} {detected_map.min()} {detected_map.max()}")
 
     control = torch.from_numpy(detected_map.copy()).float().cuda() / 255.0
     control = torch.stack([control for _ in range(num_samples)], dim=0)
@@ -112,11 +116,26 @@ def one_image_batch(
 
     results = [x_samples[i] for i in range(num_samples)]
 
-    return detected_map, results
+    re_detections = []
+    re_detections_error = []
+    for result in results:
+        if ann == "canny":
+            re_detection_map = preprocessor(resize_image(result, detect_resolution), low_threshold, high_threshold)
+        elif ann == "lineart":
+            re_detection_map = preprocessor(resize_image(result, detect_resolution), coarse=False)
+        else:
+            re_detection_map = preprocessor(resize_image(result, detect_resolution))
+        re_detection_map = HWC3(re_detection_map)
+        re_detection_map = cv2.resize(re_detection_map, (W, H), interpolation=cv2.INTER_LINEAR).astype(np.uint8)
+        detected_map_error = np.abs(re_detection_map - detected_map).astype(np.uint8)
+        re_detections.append(re_detection_map)
+        re_detections_error.append(detected_map_error)
+
+    return detected_map, results, re_detections, re_detections_error
 
 
 def save_samples(input_img, output, output_dir, img_basename):
-    detected_map, results = output
+    detected_map, results, re_detections, re_detections_error = output
 
     input_img = cv2.cvtColor(input_img, cv2.COLOR_RGB2BGR)
     cv2.imwrite(os.path.join(output_dir, f"{img_basename}.png"), input_img)
@@ -124,32 +143,49 @@ def save_samples(input_img, output, output_dir, img_basename):
     for i, result in enumerate(results):
         img = cv2.cvtColor(result, cv2.COLOR_RGB2BGR)
         cv2.imwrite(os.path.join(output_dir, f"{img_basename}_{i}.png"), img)
+        detected_map = cv2.cvtColor(re_detections[i], cv2.COLOR_RGB2BGR)
         cv2.imwrite(os.path.join(output_dir, f"{img_basename}_{i}_detected.png"), detected_map)
+        cv2.imwrite(os.path.join(output_dir, f"{img_basename}_{i}_detected_error.png"), re_detections_error[i])
 
 
 def main(args):
-    model_name = "control_v11f1p_sd15_depth"
+    if args.ann == "depth":
+        # model_name = "control_v11f1p_sd15_depth"
+        model_name = "control_v11p_sd21_zoedepth"
+        preprocessor = ZoeDetector()
+    # elif args.ann == "normal":
+    #     model_name = "control_v11p_sd15_normalbae"
+    #     preprocessor = NormalBaeDetector()
+    # elif args.ann == "canny":
+    #     model_name = "control_v11p_sd15_canny"
+    #     preprocessor = CannyDetector()
+    # elif args.ann == "seg":
+    #     model_name = "control_v11p_sd15_seg"
+    #     preprocessor = OneformerADE20kDetector()
+    # elif args.ann == "lineart":
+    #     model_name = "control_v11p_sd15_lineart"
+    #     preprocessor = LineartDetector()
+    else:
+        raise NotImplementedError
     model = create_model(f"./models/{model_name}.yaml").cpu()
-    model.load_state_dict(load_state_dict("./models/v1-5-pruned.ckpt", location="cuda"), strict=False)
-    model.load_state_dict(load_state_dict(f"./models/{model_name}.pth", location="cuda"), strict=False)
+    model.load_state_dict(load_state_dict("./models/v2-1_512-ema-pruned.safetensors", location="cuda"), strict=False)
+    model.load_state_dict(load_state_dict(f"./models/{model_name}.safetensors", location="cuda"), strict=False)
     model = model.cuda()
     ddim_sampler = DDIMSampler(model)
 
-    os.makedirs(args.output_dir, exist_ok=True)
+    cur_ann_output_dir = os.path.join(args.output_dir, args.ann)
+    os.makedirs(cur_ann_output_dir, exist_ok=True)
 
     img_path = os.path.join(args.img_path)
     img_basename = os.path.basename(img_path).split(".")[0]
     img = cv2.imread(img_path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-    depth_path = os.path.join(args.depth_path)
-    depth = cv2.imread(depth_path, cv2.IMREAD_ANYDEPTH)  # 16bit, millimeters
-    depth_image = convert_depth(depth)
     output = one_image_batch(
+        ann=args.ann,
         model=model,
         ddim_sampler=ddim_sampler,
         input_image=img,
-        depth_image=depth_image,
+        preprocessor=preprocessor,
         detect_resolution=512,
         image_resolution=512,
         low_threshold=100,
@@ -166,17 +202,22 @@ def main(args):
         n_prompt="lowres, bad anatomy, bad hands, cropped, worst quality",
         config=config,
     )
-    save_samples(img, output, args.output_dir, img_basename)
+    save_samples(img, output, cur_ann_output_dir, img_basename)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="A parser for NOCS")
 
+    parser.add_argument("--ann", type=str, default="depth")
     parser.add_argument("--img_path", type=str, default="", required=True)
-    parser.add_argument("--depth_path", type=str, default="", required=True)
     parser.add_argument("--output_dir", type=str, default="./nocs_output/", required=True)
     parser.add_argument("--num_samples", type=int, default=4)
     parser.add_argument("--debug", action="store_true", default=False)
     args = parser.parse_args()
 
-    main(args)
+    if args.ann == "all":
+        for ann in tqdm(["depth", "normal", "canny", "seg", "lineart"]):
+            args.ann = ann
+            main(args)
+    else:
+        main(args)

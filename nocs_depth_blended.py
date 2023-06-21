@@ -17,8 +17,21 @@ import config
 from annotator.util import HWC1, HWC3, resize_image
 from cldm.ddim_hacked_blended import DDIMSampler
 from cldm.model import create_model, load_state_dict
-from depth_utils import convert_depth
 from share import *
+
+
+def normalize_depth(depth):
+    depth_norm = np.copy(depth)
+    depth_norm = depth_norm / 1000.0
+    vmin = np.percentile(depth_norm, 2)
+    vmax = np.percentile(depth_norm, 85)
+
+    depth_norm -= vmin
+    depth_norm /= vmax - vmin
+    depth_norm = 1.0 - depth_norm
+    depth_image = (depth_norm * 255.0).clip(0, 255).astype(np.uint8)
+
+    return depth_image
 
 
 def read_image(img_path: str, dest_size=(512, 512)):
@@ -39,11 +52,11 @@ def read_mask(mask_path: str, dilation_iterations: int = 0, dest_size=(64, 64), 
     mask = org_mask.resize(dest_size, Image.NEAREST)
     mask = np.array(mask) / 255
 
-    masks_array = []
-    for i in reversed(range(dilation_iterations)):
-        k_size = 3 + 2 * i
-        masks_array.append(binary_dilation(mask, structure=np.ones((k_size, k_size))))
-    masks_array.append(mask)
+    if dilation_iterations > 0:
+        k_size = 3 + 2 * (dilation_iterations - 1)
+        masks_array = [binary_dilation(mask, structure=np.ones((k_size, k_size)))]
+    else:
+        masks_array = [mask]
     masks_array = np.array(masks_array).astype(np.float32)
     masks_array = masks_array[:, np.newaxis, :]
     masks_array = torch.from_numpy(masks_array).cuda()
@@ -84,9 +97,9 @@ def one_image_batch(
     skip_steps,
     percentage_of_pixel_blending,
 ):
-    init_image = torch.cat([init_image for _ in range(num_samples)], dim=0)
-    mask = torch.cat([mask for _ in range(num_samples)], dim=0)
-    org_mask = torch.cat([org_mask for _ in range(num_samples)], dim=0)
+    init_image_batch = torch.cat([init_image for _ in range(num_samples)], dim=0)
+    mask_batch = torch.cat([mask for _ in range(num_samples)], dim=0)
+    org_mask_batch = torch.cat([org_mask for _ in range(num_samples)], dim=0)
     H, W = init_image.shape[2:]
 
     detected_map = HWC3(depth)
@@ -125,9 +138,9 @@ def one_image_batch(
         num_samples,
         shape,
         cond,
-        mask=mask,
-        org_mask=org_mask,
-        init_image=init_image,
+        mask=mask_batch,
+        org_mask=org_mask_batch,
+        init_image=init_image_batch,
         verbose=False,
         eta=eta,
         unconditional_guidance_scale=scale,
@@ -146,19 +159,34 @@ def one_image_batch(
 
     results = [x_samples[i] for i in range(num_samples)]
 
-    return detected_map, results
+    return results
 
 
-def save_samples(input_img, output, output_dir, img_basename):
-    detected_map, results = output
+def save_samples(init_image, depth, mask, org_mask, output, output_dir, img_basename):
+    results = output
 
-    input_img = cv2.cvtColor(input_img, cv2.COLOR_RGB2BGR)
-    cv2.imwrite(os.path.join(output_dir, f"{img_basename}.png"), input_img)
-    cv2.imwrite(os.path.join(output_dir, f"{img_basename}_detected.png"), detected_map)
+    image = init_image[0].cpu().numpy() * 127.5 + 127.5
+    image = image.clip(0, 255).astype(np.uint8)
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+    mask_image = mask[0].cpu().numpy() * 255
+    mask_image = mask_image.clip(0, 255).astype(np.uint8)
+    mask_image = cv2.cvtColor(mask_image, cv2.COLOR_GRAY2BGR)
+
+    org_mask_image = org_mask[0].cpu().numpy() * 255
+    org_mask_image = org_mask_image.clip(0, 255).astype(np.uint8)
+    org_mask_image = cv2.cvtColor(org_mask_image, cv2.COLOR_GRAY2BGR)
+
+    depth = cv2.cvtColor(depth, cv2.COLOR_GRAY2BGR)
+
+    cv2.imwrite(os.path.join(output_dir, f"{img_basename}.png"), image)
+    cv2.imwrite(os.path.join(output_dir, f"{img_basename}_norm_depth.png"), depth)
+    cv2.imwrite(os.path.join(output_dir, f"{img_basename}_mask.png"), mask_image)
+    cv2.imwrite(os.path.join(output_dir, f"{img_basename}_org_mask.png"), org_mask_image)
+
     for i, result in enumerate(results):
         img = cv2.cvtColor(result, cv2.COLOR_RGB2BGR)
         cv2.imwrite(os.path.join(output_dir, f"{img_basename}_{i}.png"), img)
-        cv2.imwrite(os.path.join(output_dir, f"{img_basename}_{i}_detected.png"), detected_map)
 
 
 def main(args):
@@ -174,15 +202,12 @@ def main(args):
 
     img_basename = os.path.basename(args.img_path).split(".")[0]
 
-    input_img = cv2.imread(args.img_path)
-    input_img = cv2.cvtColor(input_img, cv2.COLOR_BGR2RGB)
-
     init_image = read_image(args.img_path)
     mask, org_mask = read_mask(args.mask_path, args.dilation_iterations)
 
     depth_path = os.path.join(args.depth_path)
     depth = cv2.imread(depth_path, cv2.IMREAD_ANYDEPTH)  # 16bit, millimeters
-    depth_image = convert_depth(depth)
+    depth_image = normalize_depth(depth)
 
     output = one_image_batch(
         model=model,
@@ -209,7 +234,7 @@ def main(args):
         skip_steps=0,
         percentage_of_pixel_blending=args.percentage_of_pixel_blending,
     )
-    save_samples(input_img, output, args.output_dir, img_basename)
+    save_samples(init_image, depth_image, mask, org_mask, output, args.output_dir, img_basename)
 
 
 if __name__ == "__main__":
