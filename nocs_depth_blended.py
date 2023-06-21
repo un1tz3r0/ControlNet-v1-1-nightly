@@ -238,7 +238,7 @@ def main(args):
         guess_mode=False,
         strength=1.0,
         scale=9.0,
-        seed=-1,  # 12345,
+        seed=12345,
         eta=1.0,
         prompt=args.prompt,
         a_prompt="best quality",
