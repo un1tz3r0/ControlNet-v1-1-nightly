@@ -222,6 +222,8 @@ class DDIMSampler(object):
 
             # Latent-level blending
             if mask is not None and i < cutoff_point:
+                # in our experiments, we use a fixed mask for all timesteps, even with dilation
+                # in blended latent diffusion, there is a dilation for different timesteps
                 # n_masks = mask.shape[0]
                 # masks_interval = len(time_range) // n_masks + 1
                 # curr_mask = mask[i // masks_interval].unsqueeze(0)

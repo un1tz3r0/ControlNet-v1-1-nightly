@@ -196,7 +196,7 @@ def main(args):
         scale=9.0,
         seed=12345,
         eta=1.0,
-        prompt="a bottle on table with water in it and label on it",
+        prompt=args.prompt,
         a_prompt="best quality",
         n_prompt="lowres, bad anatomy, bad hands, cropped, worst quality",
         config=config,
@@ -210,6 +210,7 @@ if __name__ == "__main__":
     parser.add_argument("--ann", type=str, default="depth")
     parser.add_argument("--img_path", type=str, default="", required=True)
     parser.add_argument("--output_dir", type=str, default="./nocs_output/", required=True)
+    parser.add_argument("--prompt", type=str, default="best quality", required=True)
     parser.add_argument("--num_samples", type=int, default=4)
     parser.add_argument("--debug", action="store_true", default=False)
     args = parser.parse_args()

@@ -189,10 +189,24 @@ def save_samples(init_image, depth, mask, org_mask, output, output_dir, img_base
 
 
 def main(args):
-    model_name = "control_v11f1p_sd15_depth"
-    model = create_model(f"./models/{model_name}.yaml").cpu()
-    model.load_state_dict(load_state_dict("./models/v1-5-pruned.ckpt", location="cuda"), strict=False)
-    model.load_state_dict(load_state_dict(f"./models/{model_name}.pth", location="cuda"), strict=False)
+    if args.sd == "21":
+        sd_model_name = "v2-1_512-ema-pruned.ckpt"
+        model_name = "control_v11p_sd21_zoedepth" if args.zoe else "control_v11p_sd21_depth"
+        config_name = f"{model_name}.yaml"
+        model_name += ".safetensors"
+    elif args.sd == "15":
+        sd_model_name = "v1-5-pruned.ckpt"
+        model_name = "control_v11f1p_sd15_depth.pth"
+        config_name = "control_v11f1p_sd15_depth.yaml"
+    else:
+        raise NotImplementedError
+    model = create_model(f"./models/{config_name}").cpu()
+    model.load_state_dict(load_state_dict(f"./models/{sd_model_name}", location="cuda"), strict=False)
+    model.load_state_dict(
+        load_state_dict(f"./models/{model_name}", location="cuda", add_prefix="control_model"),
+        strict=False,
+    )
+
     model = model.cuda()
 
     ddim_sampler = DDIMSampler(model)
@@ -224,9 +238,9 @@ def main(args):
         guess_mode=False,
         strength=1.0,
         scale=9.0,
-        seed=12345,
+        seed=-1,  # 12345,
         eta=1.0,
-        prompt="a bottle on table with water in it and label on it",
+        prompt=args.prompt,
         a_prompt="best quality",
         n_prompt="lowres, bad anatomy, bad hands, cropped, worst quality",
         config=config,
@@ -243,6 +257,11 @@ if __name__ == "__main__":
     parser.add_argument("--depth_path", type=str, default="", required=True)
     parser.add_argument("--mask_path", type=str, default="", required=True)
     parser.add_argument("--output_dir", type=str, default="./nocs_output/", required=True)
+
+    parser.add_argument("--sd", type=str, default="15")
+    parser.add_argument("--zoe", action="store_true", default=False)
+
+    parser.add_argument("--prompt", type=str, default="", required=True)
 
     parser.add_argument("--dilation_radius", type=int, default=0)
     parser.add_argument("--percentage_of_pixel_blending", type=float, default=0.0)
