@@ -51,6 +51,7 @@ python nocs_depth_blended.py \
 python nocs_depth_blended.py \
     --prompt "a glass pull-tab can on table" \
     --img_path "../data/NOCS/real_train/scene_1/0000_color_pad_2_crop_512.png" \
+    --depth_path "../data/NOCS/real_train/scene_1/0000_depth_pad_2_crop_512.png" \
     --mask_path "../data/NOCS/real_train/scene_1/0000_mask_pad_2_crop_512.png" \
     --output_dir "./controlnet_output/nocs_sd21_zoedepth_blended_dila1_real_train_scene_1" \
     --dilation_radius 1 \
@@ -60,6 +61,7 @@ python nocs_depth_blended.py \
 python nocs_depth_blended.py \
     --prompt "a transparent pull-tab can on table" \
     --img_path "../data/NOCS/real_train/scene_1/0000_color_pad_2_crop_512.png" \
+    --depth_path "../data/NOCS/real_train/scene_1/0000_depth_pad_2_crop_512.png" \
     --mask_path "../data/NOCS/real_train/scene_1/0000_mask_pad_2_crop_512.png" \
     --output_dir "./controlnet_output/nocs_sd21_zoedepth_blended_dila1_real_train_scene_1" \
     --dilation_radius 1 \
@@ -69,6 +71,7 @@ python nocs_depth_blended.py \
 python nocs_depth_blended.py \
     --prompt "a glass bowl on table" \
     --img_path "../data/NOCS/real_train/scene_1/0000_color_pad_3_crop_512.png" \
+    --depth_path "../data/NOCS/real_train/scene_1/0000_depth_pad_3_crop_512.png" \
     --mask_path "../data/NOCS/real_train/scene_1/0000_mask_pad_3_crop_512.png" \
     --output_dir "./controlnet_output/nocs_sd21_zoedepth_blended_dila1_real_train_scene_1" \
     --dilation_radius 1 \
@@ -78,6 +81,7 @@ python nocs_depth_blended.py \
 python nocs_depth_blended.py \
     --prompt "a glass cup on table" \
     --img_path "../data/NOCS/real_train/scene_1/0000_color_pad_4_crop_512.png" \
+    --depth_path "../data/NOCS/real_train/scene_1/0000_depth_pad_4_crop_512.png" \
     --mask_path "../data/NOCS/real_train/scene_1/0000_mask_pad_4_crop_512.png" \
     --output_dir "./controlnet_output/nocs_sd21_zoedepth_blended_dila1_real_train_scene_1" \
     --dilation_radius 1 \
@@ -87,6 +91,7 @@ python nocs_depth_blended.py \
 python nocs_depth_blended.py \
     --prompt "a glass can on table" \
     --img_path "../data/NOCS/real_train/scene_6/0000_color_pad_3_crop_512.png" \
+    --depth_path "../data/NOCS/real_train/scene_6/0000_depth_pad_3_crop_512.png" \
     --mask_path "../data/NOCS/real_train/scene_6/0000_mask_pad_3_crop_512.png" \
     --output_dir "./controlnet_output/nocs_sd21_zoedepth_blended_dila1_real_train_scene_6" \
     --dilation_radius 1 \
@@ -96,6 +101,7 @@ python nocs_depth_blended.py \
 python nocs_depth_blended.py \
     --prompt "a plastic water bottle on table, some part is transparent" \
     --img_path "../data/NOCS/real_train/scene_5/0000_color_pad_2_crop_512.png" \
+    --depth_path "../data/NOCS/real_train/scene_5/0000_depth_pad_2_crop_512.png" \
     --mask_path "../data/NOCS/real_train/scene_5/0000_mask_pad_2_crop_512.png" \
     --output_dir "./controlnet_output/nocs_sd21_zoedepth_blended_dila1_real_train_scene_5" \
     --dilation_radius 1 \
@@ -105,6 +111,7 @@ python nocs_depth_blended.py \
 python nocs_depth_blended.py \
     --prompt "a glass mug on table, top-down perspective" \
     --img_path "../data/NOCS/real_train/scene_4/0000_color_pad_4_crop_512.png" \
+    --depth_path "../data/NOCS/real_train/scene_4/0000_depth_pad_4_crop_512.png" \
     --mask_path "../data/NOCS/real_train/scene_4/0000_mask_pad_4_crop_512.png" \
     --output_dir "./controlnet_output/nocs_sd21_zoedepth_blended_dila1_real_train_scene_4" \
     --dilation_radius 1 \
