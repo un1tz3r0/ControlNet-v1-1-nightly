@@ -42,5 +42,5 @@ wget -P models/ https://huggingface.co/thibaud/controlnet-sd21/resolve/main/cont
 wget -P models/ https://huggingface.co/thibaud/controlnet-sd21/resolve/main/control_v11p_sd21_zoedepth.safetensors
 wget -P models/ https://huggingface.co/thibaud/controlnet-sd21/resolve/main/control_v11p_sd21_zoedepth.yaml
 
-wget -p models/ https://huggingface.co/stabilityai/stable-diffusion-2-1-base/resolve/main/v2-1_512-ema-pruned.ckpt
-wget -p models/ https://huggingface.co/stabilityai/stable-diffusion-2-1-base/resolve/main/v2-1_512-ema-pruned.safetensors
+wget -P models/ https://huggingface.co/stabilityai/stable-diffusion-2-1-base/resolve/main/v2-1_512-ema-pruned.ckpt
+wget -P models/ https://huggingface.co/stabilityai/stable-diffusion-2-1-base/resolve/main/v2-1_512-ema-pruned.safetensors
