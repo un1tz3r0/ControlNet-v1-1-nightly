@@ -10,11 +10,10 @@ import torch
 from PIL import Image
 from pytorch_lightning import seed_everything
 from scipy.ndimage import binary_dilation
-from tqdm import tqdm
 
 import config
 
-from annotator.util import HWC1, HWC3, resize_image
+from annotator.util import HWC3
 from cldm.ddim_hacked_blended import DDIMSampler
 from cldm.model import create_model, load_state_dict
 from share import *
@@ -47,13 +46,13 @@ def read_image(img_path: str, dest_size=(512, 512)):
     return image
 
 
-def read_mask(mask_path: str, dilation_iterations: int = 0, dest_size=(64, 64), img_size=(512, 512)):
+def read_mask(mask_path: str, dilation_radius: int = 0, dest_size=(64, 64), img_size=(512, 512)):
     org_mask = Image.open(mask_path).convert("L")
     mask = org_mask.resize(dest_size, Image.NEAREST)
     mask = np.array(mask) / 255
 
-    if dilation_iterations > 0:
-        k_size = 3 + 2 * (dilation_iterations - 1)
+    if dilation_radius > 0:
+        k_size = 1 + 2 * dilation_radius
         masks_array = [binary_dilation(mask, structure=np.ones((k_size, k_size)))]
     else:
         masks_array = [mask]
@@ -203,7 +202,7 @@ def main(args):
     img_basename = os.path.basename(args.img_path).split(".")[0]
 
     init_image = read_image(args.img_path)
-    mask, org_mask = read_mask(args.mask_path, args.dilation_iterations)
+    mask, org_mask = read_mask(args.mask_path, args.dilation_radius)
 
     depth_path = os.path.join(args.depth_path)
     depth = cv2.imread(depth_path, cv2.IMREAD_ANYDEPTH)  # 16bit, millimeters
@@ -245,7 +244,7 @@ if __name__ == "__main__":
     parser.add_argument("--mask_path", type=str, default="", required=True)
     parser.add_argument("--output_dir", type=str, default="./nocs_output/", required=True)
 
-    parser.add_argument("--dilation_iterations", type=int, default=0)
+    parser.add_argument("--dilation_radius", type=int, default=0)
     parser.add_argument("--percentage_of_pixel_blending", type=float, default=0.0)
 
     parser.add_argument("--num_samples", type=int, default=4)
