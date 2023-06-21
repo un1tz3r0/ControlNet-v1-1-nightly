@@ -165,15 +165,15 @@ def one_image_batch(
 def save_samples(init_image, depth, mask, org_mask, output, output_dir, img_basename):
     results = output
 
-    image = init_image[0].cpu().numpy() * 127.5 + 127.5
+    image = init_image[0].permute(1, 2, 0).cpu().numpy() * 127.5 + 127.5
     image = image.clip(0, 255).astype(np.uint8)
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-    mask_image = mask[0].cpu().numpy() * 255
+    mask_image = mask[0].permute(1, 2, 0).cpu().numpy() * 255
     mask_image = mask_image.clip(0, 255).astype(np.uint8)
     mask_image = cv2.cvtColor(mask_image, cv2.COLOR_GRAY2BGR)
 
-    org_mask_image = org_mask[0].cpu().numpy() * 255
+    org_mask_image = org_mask[0].permute(1, 2, 0).cpu().numpy() * 255
     org_mask_image = org_mask_image.clip(0, 255).astype(np.uint8)
     org_mask_image = cv2.cvtColor(org_mask_image, cv2.COLOR_GRAY2BGR)
 
