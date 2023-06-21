@@ -211,7 +211,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--ann", type=str, default="depth")
     parser.add_argument("--data_dir", type=str, default="../data/water_bottle_all_renamed/single", required=True)
-    parser.add_argument("--output_dir", type=str, default="./water_bottle_output/", required=True)
+    parser.add_argument("--output_dir", type=str, default="./controlnet_output/water_bottle/", required=True)
     parser.add_argument("--num_samples", type=int, default=1)
     parser.add_argument("--debug", action="store_true", default=False)
     args = parser.parse_args()

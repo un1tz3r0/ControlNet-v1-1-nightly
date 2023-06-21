@@ -140,5 +140,5 @@ dmypy.json
 .pyre/
 
 # custom
-controlnet_output*
+controlnet_output
 

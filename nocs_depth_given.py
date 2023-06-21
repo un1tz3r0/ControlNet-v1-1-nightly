@@ -144,7 +144,7 @@ def main(args):
 
     depth_path = os.path.join(args.depth_path)
     depth = cv2.imread(depth_path, cv2.IMREAD_ANYDEPTH)  # 16bit, millimeters
-    depth_image = convert_depth(depth)
+    depth_image = normalize_depth(depth)
     output = one_image_batch(
         model=model,
         ddim_sampler=ddim_sampler,
