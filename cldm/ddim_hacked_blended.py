@@ -3,7 +3,7 @@
 import numpy as np
 import torch
 
-from tqdm import tqdm
+# from tqdm import tqdm
 
 from ldm.modules.diffusionmodules.util import (
     extract_into_tensor,
@@ -116,7 +116,7 @@ class DDIMSampler(object):
         # sampling
         C, H, W = shape
         size = (batch_size, C, H, W)
-        print(f"Data shape for DDIM sampling is {size}, eta {eta}")
+        # print(f"Data shape for DDIM sampling is {size}, eta {eta}")
 
         samples, intermediates = self.ddim_sampling(
             conditioning,
@@ -206,12 +206,12 @@ class DDIMSampler(object):
 
         intermediates = {"x_inter": [img], "pred_x0": [img]}
 
-        print(f"Running DDIM Sampling with {total_steps} timesteps")
+        # print(f"Running DDIM Sampling with {total_steps} timesteps")
 
-        iterator = tqdm(time_range, desc="DDIM Sampler", total=total_steps)
+        # iterator = tqdm(time_range, desc="DDIM Sampler", total=total_steps)
         cutoff_point = int(len(time_range) * (1 - percentage_of_pixel_blending))
 
-        for i, step in enumerate(iterator):
+        for i, step in enumerate(time_range):
             index = total_steps - i - 1
             ts = torch.full((b,), step, device=device, dtype=torch.long)
 
@@ -370,7 +370,7 @@ class DDIMSampler(object):
         x_next = x0
         intermediates = []
         inter_steps = []
-        for i in tqdm(range(num_steps), desc="Encoding Image"):
+        for i in range(num_steps):
             t = torch.full((x0.shape[0],), timesteps[i], device=self.model.device, dtype=torch.long)
             if unconditional_guidance_scale == 1.0:
                 noise_pred = self.model.apply_model(x_next, t, c)
@@ -437,11 +437,11 @@ class DDIMSampler(object):
 
         time_range = np.flip(timesteps)
         total_steps = timesteps.shape[0]
-        print(f"Running DDIM Sampling with {total_steps} timesteps")
+        # print(f"Running DDIM Sampling with {total_steps} timesteps")
 
-        iterator = tqdm(time_range, desc="Decoding image", total=total_steps)
+        # iterator = tqdm(time_range, desc="Decoding image", total=total_steps)
         x_dec = x_latent
-        for i, step in enumerate(iterator):
+        for i, step in enumerate(time_range):
             index = total_steps - i - 1
             ts = torch.full((x_latent.shape[0],), step, device=x_latent.device, dtype=torch.long)
             x_dec, _ = self.p_sample_ddim(
