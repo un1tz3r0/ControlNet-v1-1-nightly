@@ -227,8 +227,8 @@ def main(args):
         all_image_mask_depth_dict = json.load(f)
 
     data_root_path = "../data/NOCS/"
-    # splits = ["train", "val", "real_train", "real_test"]
-    splits = ["val"]
+    splits = ["train", "val", "real_train", "real_test"]
+
     for split in splits:
         cur_split_path = os.path.join(data_root_path, f"{split}_image_mask_depth")
         cur_split_output_path = os.path.join(data_root_path, f"{split}_blended_controlnet_output")
