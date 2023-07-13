@@ -35,7 +35,7 @@ def normalize_depth(depth):
 
 def read_image(img_path: str, dest_size=(512, 512)):
     image = Image.open(img_path).convert("RGB")
-    image = image.resize(dest_size, Image.LANCZOS)
+    image = image.resize(dest_size, Image.NEAREST)
     image = np.array(image)
     image = image.astype(np.float32) / 255.0
     image = image[None].transpose(0, 3, 1, 2)
@@ -60,7 +60,7 @@ def read_mask(mask_path: str, dilation_radius: int = 0, dest_size=(64, 64), img_
     masks_array = masks_array[:, np.newaxis, :]
     masks_array = torch.from_numpy(masks_array).cuda()
 
-    org_mask = org_mask.resize(img_size, Image.LANCZOS)
+    org_mask = org_mask.resize(img_size, Image.NEAREST)
     org_mask = np.array(org_mask).astype(np.float32) / 255.0
     org_mask = org_mask[None, None]
     org_mask[org_mask < 0.5] = 0
@@ -102,7 +102,7 @@ def one_image_batch(
     H, W = init_image.shape[2:]
 
     detected_map = HWC3(depth)
-    detected_map = cv2.resize(detected_map, (W, H), interpolation=cv2.INTER_LINEAR)
+    detected_map = cv2.resize(detected_map, (W, H), interpolation=cv2.INTER_NEAREST)
     control = torch.from_numpy(detected_map.copy()).float().cuda() / 255.0
     control = torch.stack([control for _ in range(num_samples)], dim=0)
     control = einops.rearrange(control, "b h w c -> b c h w").clone()
