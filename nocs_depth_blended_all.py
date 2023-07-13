@@ -231,7 +231,7 @@ def main(args):
 
     for split in splits:
         cur_split_path = os.path.join(data_root_path, f"{split}_image_mask_depth_pair")
-        cur_split_output_path = os.path.join(data_root_path, f"{split}_blended_controlnet_output")
+        cur_split_output_path = os.path.join(data_root_path, f"{split}_bc_output")
         cur_split_image_mask_depth_pairs = all_image_mask_depth_dict[split]
 
         cur_job_pairs = cur_split_image_mask_depth_pairs[args.part_idx :: args.part_num]
