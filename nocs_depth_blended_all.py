@@ -52,10 +52,10 @@ def read_image(img_path: str, dest_size=(512, 512)):
 
 def read_mask(mask_path: str, dilation_radius: int = 0, dest_size=(64, 64), img_size=(512, 512)):
     org_mask = Image.open(mask_path).convert("L")
-    w, h = org_mask.size
-    if w != img_size[0] or h != img_size[1]:
-        org_mask = org_mask.resize(img_size, Image.NEAREST)
     mask = org_mask.copy()
+    w, h = mask.size
+    if w != dest_size[0] or h != dest_size[1]:
+        mask = mask.resize(dest_size, Image.NEAREST)
     mask = np.array(mask) / 255
 
     if dilation_radius > 0:
@@ -66,6 +66,10 @@ def read_mask(mask_path: str, dilation_radius: int = 0, dest_size=(64, 64), img_
     masks_array = np.array(masks_array).astype(np.float32)
     masks_array = masks_array[:, np.newaxis, :]
     masks_array = torch.from_numpy(masks_array).cuda()
+
+    if w != img_size[0] or h != img_size[1]:
+        org_mask = org_mask.resize(img_size, Image.NEAREST)
+
     org_mask = np.array(org_mask).astype(np.float32) / 255.0
     org_mask = org_mask[None, None]
     org_mask[org_mask < 0.5] = 0
@@ -231,6 +235,8 @@ def main(args):
 
     data_root_path = "../data/NOCS/"
     splits = ["train", "val", "real_train", "real_test"]
+    if args.debug:
+        splits = ["val"]
 
     for split in splits:
         cur_split_path = os.path.join(data_root_path, f"{split}_image_mask_depth_pair")
@@ -299,7 +305,9 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true", default=False)
 
     parser.add_argument(
-        "--all_image_mask_depth_filenames", type=str, default="../data/NOCS/nocs_bottle_image_mask_depth_pair_filenames.json"
+        "--all_image_mask_depth_filenames",
+        type=str,
+        default="../data/NOCS/nocs_bottle_image_mask_depth_pair_filenames.json",
     )
 
     parser.add_argument("--job_idx", type=int, default=0)
