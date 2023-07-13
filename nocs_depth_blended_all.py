@@ -54,7 +54,8 @@ def read_mask(mask_path: str, dilation_radius: int = 0, dest_size=(64, 64), img_
     org_mask = Image.open(mask_path).convert("L")
     w, h = org_mask.size
     if w != img_size[0] or h != img_size[1]:
-        mask = org_mask.resize(dest_size, Image.NEAREST)
+        org_mask = org_mask.resize(img_size, Image.NEAREST)
+    mask = org_mask.copy()
     mask = np.array(mask) / 255
 
     if dilation_radius > 0:
@@ -65,9 +66,6 @@ def read_mask(mask_path: str, dilation_radius: int = 0, dest_size=(64, 64), img_
     masks_array = np.array(masks_array).astype(np.float32)
     masks_array = masks_array[:, np.newaxis, :]
     masks_array = torch.from_numpy(masks_array).cuda()
-
-    if w != img_size[0] or h != img_size[1]:
-        org_mask = org_mask.resize(img_size, Image.NEAREST)
     org_mask = np.array(org_mask).astype(np.float32) / 255.0
     org_mask = org_mask[None, None]
     org_mask[org_mask < 0.5] = 0
