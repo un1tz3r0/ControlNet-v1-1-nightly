@@ -230,7 +230,7 @@ def main(args):
     splits = ["train", "val", "real_train", "real_test"]
 
     for split in splits:
-        cur_split_path = os.path.join(data_root_path, f"{split}_image_mask_depth")
+        cur_split_path = os.path.join(data_root_path, f"{split}_image_mask_depth_pair")
         cur_split_output_path = os.path.join(data_root_path, f"{split}_blended_controlnet_output")
         cur_split_image_mask_depth_pairs = all_image_mask_depth_dict[split]
 
@@ -296,7 +296,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true", default=False)
 
     parser.add_argument(
-        "--all_image_mask_depth_filenames", type=str, default="../data/NOCS/nocs_bottle_image_mask_depth_files.json"
+        "--all_image_mask_depth_filenames", type=str, default="../data/NOCS/nocs_bottle_image_mask_depth_pair_filenames.json"
     )
 
     parser.add_argument("--job_idx", type=int, default=0)
