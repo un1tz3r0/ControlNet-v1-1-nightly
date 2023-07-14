@@ -224,11 +224,12 @@ def current_sample_ok(num_samples, output_dir, img_basename):
     if not file_ok(org_mask_image_path):
         print(f"org_mask_image_path {org_mask_image_path} not ok")
         return False
-    for i in range(num_samples):
-        res_img_path = os.path.join(output_dir, f"{img_basename}_{i}.png")
-        if not file_ok(res_img_path):
-            print(f"res_img_path {res_img_path} not ok")
-            return False
+    for prompt_idx in range(8):
+        for i in range(num_samples):
+            res_img_path = os.path.join(output_dir, f"{img_basename}_prompt{prompt_idx}_{i}.png")
+            if not file_ok(res_img_path):
+                print(f"res_img_path {res_img_path} not ok")
+                return False
     print(f"current_sample_ok {img_basename} good")
     return True
 
