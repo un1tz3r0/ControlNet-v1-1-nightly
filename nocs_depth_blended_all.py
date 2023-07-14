@@ -196,6 +196,33 @@ def save_samples(init_image, depth, mask, org_mask, prompt_idx, results, output_
         cv2.imwrite(os.path.join(output_dir, f"{img_basename}_prompt{prompt_idx}_{i}.png"), img)
 
 
+def file_ok(file_path):
+    if not os.path.exists(file_path):
+        return False
+    if os.path.getsize(file_path) == 0:
+        return False
+
+
+def current_sample_ok(num_samples, output_dir, img_basename):
+    image_path = os.path.join(output_dir, f"{img_basename}.png")
+    if not file_ok(image_path):
+        return False
+    depth_path = os.path.join(output_dir, f"{img_basename}_norm_depth.png")
+    if not file_ok(depth_path):
+        return False
+    mask_image_path = os.path.join(output_dir, f"{img_basename}_mask.png")
+    if not file_ok(mask_image_path):
+        return False
+    org_mask_image_path = os.path.join(output_dir, f"{img_basename}_org_mask.png")
+    if not file_ok(org_mask_image_path):
+        return False
+    for i in range(num_samples):
+        res_img_path = os.path.join(output_dir, f"{img_basename}_{i}.png")
+        if not file_ok(res_img_path):
+            return False
+    return True
+
+
 def main(args):
     if args.sd == "21":
         sd_model_name = "v2-1_512-ema-pruned.ckpt"
@@ -253,6 +280,8 @@ def main(args):
             mask_filename = pair["mask_filename"]
             depth_filename = pair["depth_filename"]
             base_filename = color_filename.replace("_color", "").replace(".png", "")
+            if current_sample_ok(args.num_samples, cur_split_output_path, base_filename):
+                continue
             color_path = os.path.join(cur_split_path, color_filename)
             mask_path = os.path.join(cur_split_path, mask_filename)
             depth_path = os.path.join(cur_split_path, depth_filename)
