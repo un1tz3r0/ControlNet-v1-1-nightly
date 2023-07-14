@@ -275,10 +275,13 @@ def main(args):
         cur_split_image_mask_depth_pairs = all_image_mask_depth_dict[split]
 
         cur_job_pairs = cur_split_image_mask_depth_pairs[args.part_idx :: args.part_num]
+        if args.sub_job_num > 0:
+            cur_job_pairs = cur_job_pairs[args.sub_job_idx :: args.sub_job_num]
 
-        for pair in tqdm(
-            cur_job_pairs, desc=f"Job {args.job_idx} part [{args.part_idx}/{args.part_num}] Processing {split} "
-        ):
+        desc_str = f"Job {args.job_idx} part [{args.part_idx}/{args.part_num}] Processing {split}"
+        if args.sub_job_num > 0:
+            desc_str += f" sub job [{args.sub_job_idx}/{args.sub_job_num}]"
+        for pair in tqdm(cur_job_pairs, desc=desc_str):
             # filename already contains the subfolder name
             color_filename = pair["color_filename"]
             mask_filename = pair["mask_filename"]
@@ -349,6 +352,8 @@ if __name__ == "__main__":
     parser.add_argument("--gpu_num", type=int, default=8)
     parser.add_argument("--part_idx", type=int, default=0)
     parser.add_argument("--part_num", type=int, default=1)
+    parser.add_argument("--sub_job_idx", type=int, default=-1)
+    parser.add_argument("--sub_job_num", type=int, default=-1)
 
     args = parser.parse_args()
 
