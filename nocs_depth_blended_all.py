@@ -201,6 +201,9 @@ def file_ok(file_path):
         return False
     if os.path.getsize(file_path) == 0:
         return False
+    img = cv2.imread(file_path)
+    if img is None:
+        return False
     return True
 
 
