@@ -201,6 +201,7 @@ def file_ok(file_path):
         return False
     if os.path.getsize(file_path) == 0:
         return False
+    return True
 
 
 def current_sample_ok(num_samples, output_dir, img_basename):
