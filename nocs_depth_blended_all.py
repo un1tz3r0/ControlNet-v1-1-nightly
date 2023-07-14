@@ -199,8 +199,8 @@ def save_samples(init_image, depth, mask, org_mask, prompt_idx, results, output_
 def file_ok(file_path):
     if not os.path.exists(file_path):
         return False
-    # if os.path.getsize(file_path) == 0:
-    #     return False
+    if os.path.getsize(file_path) == 0:
+        return False
     # img = cv2.imread(file_path)
     # if img is None:
     #     return False
@@ -208,7 +208,7 @@ def file_ok(file_path):
 
 
 def current_sample_ok(num_samples, output_dir, img_basename):
-    image_path = os.path.join(output_dir, f"{img_basename}.png")
+    image_path = os.path.join(output_dir, f"{img_basename}_color.png")
     if not file_ok(image_path):
         print(f"image_path {image_path} not ok")
         return False
