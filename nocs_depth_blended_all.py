@@ -199,11 +199,11 @@ def save_samples(init_image, depth, mask, org_mask, prompt_idx, results, output_
 def file_ok(file_path):
     if not os.path.exists(file_path):
         return False
-    if os.path.getsize(file_path) == 0:
-        return False
-    img = cv2.imread(file_path)
-    if img is None:
-        return False
+    # if os.path.getsize(file_path) == 0:
+    #     return False
+    # img = cv2.imread(file_path)
+    # if img is None:
+    #     return False
     return True
 
 
