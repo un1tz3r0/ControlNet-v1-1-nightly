@@ -1,11 +1,11 @@
+import os
 import random
 
-import numpy as np
 import cv2
-import os
+import numpy as np
 
 
-annotator_ckpts_path = os.path.join(os.path.dirname(__file__), 'ckpts')
+annotator_ckpts_path = os.path.join(os.path.dirname(__file__), "ckpts")
 
 
 def HWC3(x):
@@ -27,6 +27,15 @@ def HWC3(x):
         return y
 
 
+def HWC1(x):
+    if x.ndim == 2:
+        x = x[:, :, None]
+    assert x.ndim == 3
+    H, W, C = x.shape
+    assert C == 1
+    return x
+
+
 def resize_image(input_image, resolution):
     H, W, C = input_image.shape
     H = float(H)
@@ -37,6 +46,19 @@ def resize_image(input_image, resolution):
     H = int(np.round(H / 64.0)) * 64
     W = int(np.round(W / 64.0)) * 64
     img = cv2.resize(input_image, (W, H), interpolation=cv2.INTER_LANCZOS4 if k > 1 else cv2.INTER_AREA)
+    return img
+
+
+def resize_depth(input_depth, resolution):
+    H, W, C = input_depth.shape
+    H = float(H)
+    W = float(W)
+    k = float(resolution) / min(H, W)
+    H *= k
+    W *= k
+    H = int(np.round(H / 64.0)) * 64
+    W = int(np.round(W / 64.0)) * 64
+    img = cv2.resize(input_depth, (W, H), interpolation=cv2.INTER_LINEAR)
     return img
 
 
@@ -61,7 +83,7 @@ def nms(x, t, s):
 def make_noise_disk(H, W, C, F):
     noise = np.random.uniform(low=0, high=1, size=((H // F) + 2, (W // F) + 2, C))
     noise = cv2.resize(noise, (W + 2 * F, H + 2 * F), interpolation=cv2.INTER_CUBIC)
-    noise = noise[F: F + H, F: F + W]
+    noise = noise[F : F + H, F : F + W]
     noise -= np.min(noise)
     noise /= np.max(noise)
     if C == 1:

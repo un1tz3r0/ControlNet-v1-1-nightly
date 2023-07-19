@@ -9,11 +9,13 @@ def get_state_dict(d):
     return d.get('state_dict', d)
 
 
-def load_state_dict(ckpt_path, location='cpu'):
+def load_state_dict(ckpt_path, location='cpu', add_prefix=None):
     _, extension = os.path.splitext(ckpt_path)
     if extension.lower() == ".safetensors":
         import safetensors.torch
         state_dict = safetensors.torch.load_file(ckpt_path, device=location)
+        if add_prefix is not None:
+            state_dict = {f'{add_prefix}.{k}': v for k, v in state_dict.items()}
     else:
         state_dict = get_state_dict(torch.load(ckpt_path, map_location=torch.device(location)))
     state_dict = get_state_dict(state_dict)
