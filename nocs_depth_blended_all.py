@@ -321,7 +321,7 @@ def main(args):
                     guess_mode=False,
                     strength=1.0,
                     scale=9.0,
-                    seed=12345,
+                    seed=args.seed,
                     eta=1.0,
                     prompt=cur_prompt,
                     a_prompt="best quality",
@@ -345,6 +345,7 @@ if __name__ == "__main__":
     parser.add_argument("--percentage_of_pixel_blending", type=float, default=0.0)
 
     parser.add_argument("--num_samples", type=int, default=8)
+    parser.add_argument("--seed", type=int, default=12345)
     parser.add_argument("--debug", action="store_true", default=False)
 
     parser.add_argument(
